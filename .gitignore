@@ -1,0 +1,7 @@
+test
+output
+venv
+vids
+.DS_Store
+*.jpg
+*.NEF
