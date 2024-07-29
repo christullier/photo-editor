@@ -1,21 +1,9 @@
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
+import rawpy
 
 
 def adjust_tone_curve(image, curve_points_red, curve_points_green, curve_points_blue):
-    """
-    Adjust the tone curve of an image based on given curve points for each channel.
-
-    Parameters:
-        image (numpy.ndarray): Input image.
-        curve_points_red (list of tuple): List of points defining the tone curve for the red channel.
-        curve_points_green (list of tuple): List of points defining the tone curve for the green channel.
-        curve_points_blue (list of tuple): List of points defining the tone curve for the blue channel.
-
-    Returns:
-        numpy.ndarray: Image with adjusted tone curves.
-    """
     # Create lookup tables for each color channel
     full_range = np.arange(256)
     lut_red = np.interp(
@@ -44,33 +32,51 @@ def adjust_tone_curve(image, curve_points_red, curve_points_green, curve_points_
     return adjusted_image
 
 
+def adjust_exposure(image, exposure_factor):
+    """
+    Adjust the exposure of an image.
+
+    Parameters:
+        image (numpy.ndarray): Input image.
+        exposure_factor (float): Factor by which to adjust the exposure.
+                                 Values > 1 will increase exposure, values < 1 will decrease exposure.
+
+    Returns:
+        numpy.ndarray: Image with adjusted exposure.
+    """
+    return np.clip(image * exposure_factor, 0, 255).astype("uint8")
+
+
 # Load an image
-image = cv2.imread("tree.jpg", cv2.IMREAD_COLOR)
-cv2.imwrite("pre.png", image)
-image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert to RGB
-cv2.imwrite("post.png", image)
-# Define tone curve points for each channel (example)
-curve_points_red = [(10, 255), (64, 70), (128, 128), (192, 180), (255, 255)]
-curve_points_green = [(20, 255), (64, 80), (128, 128), (192, 200), (255, 255)]
-curve_points_blue = [(37, 0), (64, 90), (128, 128), (192, 210), (255, 255)]
+# image = cv2.imread("tree.jpg", cv2.IMREAD_COLOR)
+# image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Convert to RGB
+raw = rawpy.imread("tree.NEF")
+image = raw.postprocess()
 
-# Adjust the tone curves of the image
-adjusted_image = adjust_tone_curve(
-    image, curve_points_red, curve_points_green, curve_points_blue
-)
+TEST = False
 
-cv2.imwrite("out.png", adjusted_image)
+final_adjustment = 4
+if TEST:
+    frames = 10
+    dir = "test"
+else:
+    frames = 120 * 2
+    dir = "output"
+for i in range(frames):
+    # Slightly increase the exposure
+    exposure_factor = round(final_adjustment * (i / frames), 4)
 
-# Display the original and adjusted images
-plt.figure(figsize=(12, 6))
-plt.subplot(1, 2, 1)
-plt.title("Original Image")
-plt.imshow(image)
-plt.axis("off")
+    # exposure **must** be adjusted first
+    adjusted_image = adjust_exposure(image, exposure_factor)
 
-plt.subplot(1, 2, 2)
-plt.title("Adjusted Image")
-plt.imshow(adjusted_image)
-plt.axis("off")
+    # Define tone curve points for each channel (example)
+    # base: [(0, 0), (64, 80), (128, 128), (192, 200), (255, 255)]
+    # Adjust the tone curves of the image
+    curve_points_red = [(30, 0), (130 + i, 255), (200, 0)]
+    curve_points_green = [(0, 0), (89 + i, 255), (255, 0)]
+    curve_points_blue = [(80, 0), (100 + i, 255), (255, 0)]
 
-plt.show()
+    adjusted_image = adjust_tone_curve(
+        adjusted_image, curve_points_red, curve_points_green, curve_points_blue
+    )
+    cv2.imwrite(f"{dir}/{i+1}.png", adjusted_image)
