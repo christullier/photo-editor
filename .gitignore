@@ -6,3 +6,5 @@ vids
 *.jpg
 *.NEF
 *.png
+nvenv
+*.pyc
