@@ -52,7 +52,7 @@ def images_to_video(image_folder, output_video, frame_rate):
 
 def make_video(video_file_name: str, image_folder: str, frame_rate: int):
 
-    video_file_name = "vids/" + video_file_name + ".mp4"
+    video_file_name = "vids/" + video_file_name
 
     images_to_video(image_folder, video_file_name, frame_rate)
     os.system("say completo")

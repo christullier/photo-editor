@@ -1,112 +1,82 @@
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
-from moviepy.editor import VideoClip
-from moviepy.video.io.bindings import mplfig_to_npimage
-from numpy.polynomial.polynomial import Polynomial
 
-PARAMS = {
-    "xlim": (-1.5, 1.5),
-    "ylim": (-1.5, 1.5),
-    "niter": 100,  # number of Newton iterations
-    "res": 700,  # points per axis
-    "duration": 5,  # gif duration in seconds
-}
+x_start, y_start = -2, -1.5  # an interesting region starts here
+width, height = 3, 3  # for 3 units up and right
+density_per_unit = 250  # how many pixles per unit
 
+# real and imaginary axis
+re = np.linspace(x_start, x_start + width, width * density_per_unit)
+im = np.linspace(y_start, y_start + height, height * density_per_unit)
 
-def calc_newton_fractal(C: np.ndarray, poly: Polynomial, niter=100) -> np.ndarray:
-    """Calculate a Newton fractal for a given polynomial and complex grid."""
-
-    # Perform newton iterations on grid points.
-    for _ in range(niter):
-        C = C - poly(C) / poly.deriv()(C)
-
-    # Order grid points by proximity to roots.
-    root_proximity = np.array([np.abs(C - root) for root in poly.roots()])
-    fractal = np.argmin(root_proximity, axis=0)
-
-    return fractal
+fig = plt.figure(figsize=(10, 10))  # instantiate a figure to draw
+ax = plt.axes()  # create an axes object
 
 
-def plot_fractal(
-    fractal: np.ndarray, roots: list, xlim: tuple, ylim: tuple
-) -> plt.Figure:
-    """Plot a single Euler fractal."""
+def mandelbrot(x, y, threshold):
+    """Calculates whether the number c = x + i*y belongs to the
+    Mandelbrot set. In order to belong, the sequence z[i + 1] = z[i]**2 + c
+    must not diverge after 'threshold' number of steps. The sequence diverges
+    if the absolute value of z[i+1] is greater than 4.
 
-    fig = plt.figure(figsize=(4, 4))
-    plt.imshow(
-        fractal.T, extent=(*xlim, *ylim), cmap="viridis", interpolation="bilinear"
-    )
-    root_x = [x.real for x in roots]
-    root_y = [x.imag for x in roots]
-    plt.plot(root_x, root_y, ".k", ms=10)
-    plt.axis("off")
+    :param float x: the x component of the initial complex number
+    :param float y: the y component of the initial complex number
+    :param int threshold: the number of iterations to considered it converged
+    """
+    # initial conditions
+    c = complex(x, y)
+    z = complex(0, 0)
 
-    return fig
+    for i in range(threshold):
+        z = z**2 + c
+        if abs(z) > 4.0:  # it diverged
+            return i
 
-
-def make_gif(filename, iter_func, duration, fps=20):
-    """Make an animated gif from an interation function."""
-
-    def make_frame(t):
-        fig = iter_func(t / duration)
-        img = mplfig_to_npimage(fig)
-        plt.close(fig)
-        return img
-
-    animation = VideoClip(make_frame, duration=duration)
-    animation.write_gif(filename, fps=fps)
+    return threshold - 1  # it didn't diverge
 
 
-def animate_newton_fractal(
-    origin: list,
-    dest: list,
-    filename: str,
-    duration=5,
-    res=500,
-    niter=100,
-    xlim=(-1.5, 1.5),
-    ylim=(-1.5, 1.5),
-):
-    """Make an animated gif of a Newton fractal given two polynomials."""
-    origin, dest = np.array(origin), np.array(dest)
-    x = np.linspace(*xlim, res)
-    y = np.linspace(*ylim, res)
-    c = x[:, np.newaxis] + 1j * y[np.newaxis, :]
+def julia_quadratic(zx, zy, cx, cy, threshold):
+    """Calculates whether the number z[0] = zx + i*zy with a constant c = x + i*y
+    belongs to the Julia set. In order to belong, the sequence
+    z[i + 1] = z[i]**2 + c, must not diverge after 'threshold' number of steps.
+    The sequence diverges if the absolute value of z[i+1] is greater than 4.
 
-    def iter_func(t):
-        coefs = t * origin + (1 - t) * dest
-        poly = Polynomial(coefs)
+    :param float zx: the x component of z[0]
+    :param float zy: the y component of z[0]
+    :param float cx: the x component of the constant c
+    :param float cy: the y component of the constant c
+    :param int threshold: the number of iterations to considered it converged
+    """
+    # initial conditions
+    z = complex(zx, zy)
+    c = complex(cx, cy)
 
-        fractal = calc_newton_fractal(c, poly, niter=niter)
-        fig = plot_fractal(fractal, poly.roots(), xlim, ylim)
-        return fig
+    for i in range(threshold):
+        z = z**2 + c
+        if abs(z) > 4.0:  # it diverged
+            return i
 
-    make_gif(filename, iter_func, duration)
+    return threshold - 1  # it didn't diverge
 
 
-if __name__ == "__main__":
+def animate(i):
+    ax.clear()  # clear axes object
+    ax.set_xticks([], [])  # clear x-axis ticks
+    ax.set_yticks([], [])  # clear y-axis ticks
 
-    animate_newton_fractal(
-        [-1, 1, 1, 1],
-        [1.5, 1, 1, 1],
-        "cubic.gif",
-        **PARAMS,
-    )
-    animate_newton_fractal(
-        [-1, 1, 1, 1, 1, 1],
-        [1.5, 1, 1, 1, 1, 1],
-        "quintic.gif",
-        **PARAMS,
-    )
-    animate_newton_fractal(
-        [-1, 1, 1, 1, 1, 1, 1, 1],
-        [1.5, 1, 1, 1, 1, 1, 1, 1],
-        "septic.gif",
-        **PARAMS,
-    )
-    animate_newton_fractal(
-        [-1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [1.5, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        "nonic.gif",
-        **PARAMS,
-    )
+    X = np.empty((len(re), len(im)))  # re-initialize the array-like image
+    threshold = round(1.15 ** (i + 1))  # calculate the current threshold
+
+    # iterations for the current threshold
+    for i in range(len(re)):
+        for j in range(len(im)):
+            X[i, j] = mandelbrot(re[i], im[j], threshold)
+
+    # associate colors to the iterations with an iterpolation
+    img = ax.imshow(X.T, interpolation="bicubic", cmap="magma")
+    return [img]
+
+
+anim = animation.FuncAnimation(fig, animate, frames=45, interval=120, blit=True)
+anim.save("mandelbrot.gif", writer="imagemagick")
