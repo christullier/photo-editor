@@ -22,6 +22,6 @@ def extract_frames_from_gif(gif_path, output_folder):
 
 
 # Usage example
-gif_file_path = "sample-julia.gif"
-output_directory = "gif_output"
+gif_file_path = "julia_cropped_1.gif"
+output_directory = "julia_cropped_split_1"
 extract_frames_from_gif(gif_file_path, output_directory)

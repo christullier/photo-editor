@@ -27,7 +27,7 @@ def get_new_vid_name(base_name, directory="."):
 
 if __name__ == "__main__":
 
-    TEST = True
+    TEST = False
     curve_adjustments = {
         "red": [(30, 0), (130, 255), (200, 0)],
         "green": [(0, 0), (89, 255), (255, 0)],
